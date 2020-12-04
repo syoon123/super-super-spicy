@@ -4,14 +4,16 @@ import dlib
 import cv2
 import numpy as np
 import math
-# import pywavefront
+
 from OBJFileLoader import *
 
 import os
 os.chdir("C:\\Users\\sux3\\Desktop\\dlib_test")
 
-# glasses_obj = pywavefront.Wavefront('Sunglasses.obj')
-glasses_obj = OBJ(filename = 'Sunglasses.obj')
+
+# my_obj = OBJ(filename = 'Sunglasses.obj')
+my_obj = OBJ(filename = 'fox.obj')
+
 
 p = "shape_predictor_68_face_landmarks.dat"
 detector = dlib.get_frontal_face_detector()
@@ -51,10 +53,12 @@ def projection_matrix(camera_parameters, homography):
     
 def render(img, obj, projection, rect, color=False):
     vertices = obj.vertices
-    scale_matrix = np.eye(3) * 3
+    scale_matrix = np.eye(3) * 0.1#3
+    
     # h, w = model.shape
     h = rect.bottom() - rect.top()
     w = rect.right() - rect.left()
+    
 
     for face in obj.faces:
         face_vertices = face[0]
@@ -65,13 +69,17 @@ def render(img, obj, projection, rect, color=False):
         points = np.array([[p[0] + w / 2, p[1] + h / 2, p[2]] for p in points])
         dst = cv2.perspectiveTransform(points.reshape(-1, 1, 3), projection)
         imgpts = np.int32(dst)
+       
+        
         if color is False:
-            cv2.fillConvexPoly(img, imgpts, (137, 27, 211))
+            # cv2.fillConvexPoly(img, imgpts, (137, 27, 211))
+            cv2.fillConvexPoly(img, imgpts, (255, 255, 255))
         else:
             color = hex_to_rgb(face[-1])
             color = color[::-1] # reverse
             cv2.fillConvexPoly(img, imgpts, color)
 
+    
     return img
     
 
@@ -137,19 +145,23 @@ def estimate_pose(im,shape,rect):
     p1 = ( int(image_points[0][0]), int(image_points[0][1]))
     p2 = ( int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
 
+    #draw projection vector
     cv2.line(im, p1, p2, (255,0,0), 2)
+    
     
     #get homography
     R, _ = cv2.Rodrigues(rotation_vector) #get rotation matrix
     RT = np.vstack([R.T,translation_vector.T]).T #append translation vector
     H = np.dot(camera_matrix,RT)
     
+    #get projection matrix
     P = projection_matrix(camera_matrix, H)
     
+    #render obj
+    im_render = render(im, my_obj, P, rect)
     
-    im_render = render(im, glasses_obj, P, rect)
-    # print(H.shape)#3x2
-    return im
+    # return im
+    return im_render
     # cv2.waitKey(0)
 
 
@@ -157,6 +169,7 @@ while True:
 
     # Getting out image by webcam 
     _, image = cap.read()
+    
     # Converting the image to gray scale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
