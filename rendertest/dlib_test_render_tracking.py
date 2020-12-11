@@ -38,16 +38,16 @@ window_name = "tracking"
 
 #start video capture
 cap = cv2.VideoCapture(0)
-win = dlib.image_window()
-    
+# win = dlib.image_window()
+
 def render(img, obj, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,0.6,2.5], scale = 140, color=(0, 0, 0)):
     vertices = obj.vertices
     scale_matrix = np.eye(3) * scale
-    
+
     # height and width of rect enclosing face
     h = rect.bottom() - rect.top()
     w = rect.right() - rect.left()
-    
+
 
     for face in obj.faces:
         face_vertices = face[0]
@@ -57,21 +57,21 @@ def render(img, obj, rect, rotation_vector, translation_vector, camera_matrix, d
         # model points must be displaced
         # points = np.array([[p[0] + w / 2, p[1] + h / 2, p[2]] for p in points])
         points = np.array([[p[0] + point_offset[0]*w, p[1] + point_offset[1]*h, p[2] - point_offset[2]*w]  for p in points])
-        
+
         # dst = cv2.perspectiveTransform(points.reshape(-1, 1, 3), projection)
         (dst, jacobian) = cv2.projectPoints(points.reshape(-1, 1, 3), rotation_vector, translation_vector, camera_matrix, dist_coeffs)
-        
+
         imgpts = np.int32(dst)
-       
+
         cv2.fillConvexPoly(img, imgpts, color)
 
     return img
-    
+
 
 def estimate_pose(im,shapes,rect):
 
     size = im.shape
-    
+
     #2D image points. If you change the image, you need to change vector
 
     #corners of eyes: 37, 46
@@ -85,7 +85,7 @@ def estimate_pose(im,shapes,rect):
     #                             shape[45],     # Right eye right corner
     #                             shape[48],     # Left Mouth corner
     #                             shape[54],      # Right mouth corner
-    
+
     image_points = np.array([
                                 shapes[0],     # Nose tip
                                 shapes[1],     # Chin
@@ -93,9 +93,9 @@ def estimate_pose(im,shapes,rect):
                                 shapes[3],     # Right eye right corner
                                 shapes[4],     # Left Mouth corner
                                 shapes[5],      # Right mouth corner
-                                
+
                             ], dtype="double")
-   
+
     # 3D model points.
     model_points = np.array([
                                 (0.0, 0.0, 0.0),             # Nose tip
@@ -104,7 +104,7 @@ def estimate_pose(im,shapes,rect):
                                 (225.0, 170.0, -135.0),      # Right eye right corne
                                 (-150.0, -150.0, -125.0),    # Left Mouth corner
                                 (150.0, -150.0, -125.0)      # Right mouth corner
-                            
+
                             ])
 
 
@@ -120,6 +120,10 @@ def estimate_pose(im,shapes,rect):
     dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
     (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
 
+    print('Rotation vector: ' + str(rotation_vector))
+    print('Translation vector: ' + str(translation_vector))
+    print('Camera matrix: ' + str(camera_matrix))
+
     # Project a 3D point (0, 0, 1000.0) onto the image plane.
     # We use this to draw a line sticking out of the nose
 
@@ -134,28 +138,28 @@ def estimate_pose(im,shapes,rect):
 
     #draw projection vector
     # cv2.line(im, p1, p2, (255,0,0), 2)
-    
+
     #render obj
     im_render = render(im, obj1, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,0.6,2.5], scale = 140, color = (0, 0, 0))
     im_render = render(im_render, obj2, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,-1,4], scale = 700, color = (0, 0, 0))
-    
+
     # return im
     return im_render
-    
+
 shapes = []
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 selected = False
 while True:
 
-    # Getting out image by webcam 
+    # Getting out image by webcam
     _, frame = cap.read()
-    
+
     # Converting the image to gray scale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
+
     # Get faces into webcam's image
     rects = detector(gray, 0)
-    
+
     # For each detected face, find the landmark.
     # for (i, rect) in enumerate(rects):
         # Make the prediction and transfom it to numpy array
@@ -177,9 +181,9 @@ while True:
         frame = estimate_pose(frame,shapes, r)
             #pose estimation
             # frame = estimate_pose(frame,shapes, rect)
-            
 
-    else: 
+
+    else:
         if selected:
             # img_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             # img_bproject = cv2.calcBackProject(
@@ -207,7 +211,7 @@ while True:
                 #         [img_hsv], [
                 #             0, 1], crop_hists[i], [
                 #             0, 180, 0, 255], 1)
-                
+
                 # ret, track_windows[i] = cv2.CamShift(
                 #     img_bproject, track_windows[i], term_crit)
 
@@ -231,7 +235,7 @@ while True:
                 # prediction = kalmans[i].predict()
                 trackers[i].update(frame)
                 p = trackers[i].get_position()
-                print(p)
+                # print(p)
                 cv2.rectangle(frame, (int(p.left()), int(p.top())), (int(p.right()), int(p.bottom())), (0, 255, 0), 2)
 
                 # draw predicton on image - in GREEN
@@ -249,13 +253,13 @@ while True:
                 # shapes.append((x, y))
             # shape = predictor(gray, dlib.rectangle(x, y, x+w, y+h))
             # shape = face_utils.shape_to_np(shape)
-    
-            
+
+
             #pose estimation
             frame = estimate_pose(frame,shapes, r)
 
     cv2.imshow(window_name, frame)
-    
+
     #exit with esc keypress
     k = cv2.waitKey(5) & 0xFF
     if k == 27:
