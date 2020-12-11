@@ -108,7 +108,7 @@ def write_on_image(frame):
         else:
             text = "Five Fingers"
             
-        print(hand.fingers)
+        # print(hand.fingers)
         
     cv2.putText(frame, text, (10,20), cv2.FONT_HERSHEY_COMPLEX, 1,( 0 , 0 , 0 ),2,cv2.LINE_AA)
     # cv2.putText(frame, text, (10,20), cv2.FONT_HERSHEY_COMPLEX, 1,(255,255,255),1,cv2.LINE_AA)
@@ -116,6 +116,8 @@ def write_on_image(frame):
 
     # Highlight the region of interest using a drawn rectangle.
     cv2.rectangle(frame, (region_left, region_top), (region_right, region_bottom), (255,255,255), 2)
+    
+    
 
 def get_region(frame):
     # Separate the region of interest from the rest of the frame.
@@ -193,7 +195,7 @@ def get_hand_data(thresholded_image, segmented_image):
     if frames_elapsed % 10 == 0:
         hand.fingers = most_frequent(hand.gestureList)
         hand.gestureList.clear()
-        
+
 def count_fingers(thresholded_image):
 
     # Find the height at which we will draw the line to count fingers.
@@ -331,12 +333,30 @@ def estimate_pose(im,shape,rect):
     # cv2.line(im, p1, p2, (255,0,0), 2)
     
     #render obj
-    im_render = render(im, obj1, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,0.6,2.5], scale = 140, color = (0, 0, 0))
-    im_render = render(im_render, obj2, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,-1,4], scale = 700, color = (0, 0, 0))
+    # im_render = render(im, obj1, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,0.6,2.5], scale = 140, color = (0, 0, 0))
+    # im_render = render(im_render, obj2, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,-1,4], scale = 700, color = (0, 0, 0))
+    
+    color = (0,0,0)
+    if hasattr(hand, 'fingers'):
+        # print(hand.fingers)
+        if hand.fingers == 0:
+            color = (0,0,0)
+        elif hand.fingers == 1:
+            color = (255,0,0)
+        elif hand.fingers == 2:
+            color = (0,255,0)
+        elif hand.fingers == 3:
+            color = (0,0,255)
+        elif hand.fingers == 4:
+            color = (255,0,127)
+        elif hand.fingers == 5:
+            color = (255,255,255)
+        
+    im_render = render(im, obj1, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,0.6,2.5], scale = 140, color= color)
+    im_render = render(im_render, obj2, rect, rotation_vector, translation_vector, camera_matrix, dist_coeffs, point_offset = [0,-1,4], scale = 700, color= color)
     
     # return im
     return im_render
-
 
 
 while True:
@@ -364,7 +384,7 @@ while True:
             cv2.imshow("Segmented Image", region)
             
             get_hand_data(thresholded_region, segmented_region)
-            
+
             
     # Converting the image to gray scale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -381,13 +401,14 @@ while True:
         # Draw on our image, all the finded cordinate points (x,y) 
         # for (x, y) in shape:
             # cv2.circle(image, (x, y), 2, (0, 255, 0), -1)
-   
+            
         #pose estimation
         image = estimate_pose(image,shape, rect)
     
     # win.clear_overlay()    
     # win.set_image(image)
     # win.add_overlay(rects)
+
 
     write_on_image(image)
     
