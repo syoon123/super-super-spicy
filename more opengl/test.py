@@ -68,33 +68,59 @@ class FromVideo:
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
 
         glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGB, GL_UNSIGNED_BYTE, image)
+ 
 
     def handle_background(self, image):
         # convert image to OpenGL texture format
         bg_image = cv2.flip(image, 0)
-        bg_image = Image.fromarray(bg_image)     
+        bg_image = Image.fromarray(bg_image)
         ix = bg_image.size[0]
         iy = bg_image.size[1]
         bg_image = bg_image.tobytes("raw", "BGRX", 0, -1)
 
         # create background texture
-        glBindTexture(GL_TEXTURE_2D, self.texture_background)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, bg_image)
 
-
-    def draw_background(self):
         glBegin(GL_QUADS)
         glTexCoord2f(0.0, 1.0); glVertex3f(-4.0, -3.0, 0.0)
         glTexCoord2f(1.0, 1.0); glVertex3f( 4.0, -3.0, 0.0)
         glTexCoord2f(1.0, 0.0); glVertex3f( 4.0,  3.0, 0.0)
         glTexCoord2f(0.0, 0.0); glVertex3f(-4.0,  3.0, 0.0)
         glEnd( )
+        glDeleteTextures(1)
+
+    def draw_teapot(self):
+        # glEnable(GL_LIGHTING)
+        # glEnable(GL_LIGHT0)
+        # glEnable(GL_DEPTH_TEST)
+        # glClear(GL_DEPTH_BUFFER_BIT)
+        # glMaterialfv(GL_FRONT,GL_AMBIENT,[0,0,0,0])
+        # glMaterialfv(GL_FRONT,GL_DIFFUSE,[0.5,0.0,0.0,0.0])
+        # glMaterialfv(GL_FRONT,GL_SPECULAR,[0.7,0.6,0.6,0.0])
+        # glMaterialf(GL_FRONT,GL_SHININESS,0.25*128.0)
+        
+
+        image = Image.open("img2.png")
+        ix = image.size[0]
+        iy = image.size[1]
+        image = image.tobytes("raw", "RGBA", 0, -1)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, image)
+       
+        glutSolidTeapot(0.5)
+        
+        glDeleteTextures(1)
 
     def draw_stuff(self):
         _, image = self.cap.read()
-        self.handle_background(image)
+        # self.handle_background(image)
 
         x, y = 0, 0
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -110,7 +136,7 @@ class FromVideo:
         glBindTexture(GL_TEXTURE_2D, self.texture_background)
         glPushMatrix()
         glTranslatef(0.0,0.0,-11.2)
-        self.draw_background()
+        self.handle_background(image)
         glPopMatrix()
 
         # glColor4f(1.0, 1.0, 1.0, 1.0)
@@ -118,16 +144,16 @@ class FromVideo:
         # glEnable(GL_BLEND)
         # glDisable(GL_DEPTH_TEST)
 
-        glBindTexture(GL_TEXTURE_2D, self.texture_cube)
+        # glBindTexture(GL_TEXTURE_2D, self.texture_cube)
         glPushMatrix()
         glTranslatef(0.0,0.0,-7.0)
-        # glRotatef(self.x_axis,1.0,0.0,0.0)
-        # glRotatef(0.0,0.0,1.0,0.0)
-        # glRotatef(self.z_axis,0.0,0.0,1.0)
         glTranslatef(2*x/self.width, 1 - 2*y/self.height, 0)
-#        print(x)
-#        print(y)
-        glutSolidTeapot(0.5)
+        glRotatef(self.x_axis,1.0,0.0,0.0)
+        glRotatef(0.0,0.0,1.0,0.0)
+        glRotatef(self.z_axis,0.0,0.0,1.0)
+
+        # glutSolidTeapot(0.5)
+        self.draw_teapot()
         # self.draw_cube()
         glPopMatrix()
 
@@ -168,6 +194,7 @@ class FromVideo:
         glEnd()
 
     def main(self):
+        # setup and run OpenGL
         glutInit()
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
         glutInitWindowSize(640, 480)
@@ -180,3 +207,4 @@ class FromVideo:
 
 a = FromVideo()
 a.main()
+
