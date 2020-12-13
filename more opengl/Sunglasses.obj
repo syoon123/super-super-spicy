@@ -6007,7 +6007,6 @@ vt 0.8121 0.2150 0.0000
 vt 0.8121 0.2138 0.0000
 # 2430 texture coords
 
-# g Sunglasses
 usemtl Material__41
 s 1
 f 1/1/1 2/2/2 3/3/3 4/4/4

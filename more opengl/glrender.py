@@ -9,7 +9,7 @@ import numpy as np
 from imutils import face_utils
 import dlib
 
-from fasterobj import OBJ, OBJ_array, OBJ_vbo
+from fasterobj import OBJ
 
 # from OBJFileLoader import *
 
@@ -94,7 +94,7 @@ class FromVideo:
 
         # create background texture
         glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
+        glBindTexture(GL_TEXTURE_2D, self.texture_background)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, bg_image)
@@ -110,30 +110,7 @@ class FromVideo:
         glVertex3f(-self.width * 0.003, -self.height * 0.003, 0.0)
         glEnd()
         glDeleteTextures(1)
-
-    def draw_teapot(self):
-        # glEnable(GL_LIGHTING)
-        # glEnable(GL_LIGHT0)
-        # glEnable(GL_DEPTH_TEST)
-        # glClear(GL_DEPTH_BUFFER_BIT)
-        # glMaterialfv(GL_FRONT,GL_AMBIENT,[0,0,0,0])
-        # glMaterialfv(GL_FRONT,GL_DIFFUSE,[0.5,0.0,0.0,0.0])
-        # glMaterialfv(GL_FRONT,GL_SPECULAR,[0.7,0.6,0.6,0.0])
-        # glMaterialf(GL_FRONT,GL_SHININESS,0.25*128.0)
-
-        image = Image.open("img2.png")
-        ix = image.size[0]
-        iy = image.size[1]
-        image = image.tobytes("raw", "RGBA", 0, -1)
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, image)
-
-        glutSolidTeapot(0.2)
-
-        glDeleteTextures(1)
+        glDisable(GL_TEXTURE_2D)
 
     def draw_stuff(self):
         _, image = self.cap.read()
@@ -143,8 +120,6 @@ class FromVideo:
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-
-        glBindTexture(GL_TEXTURE_2D, self.texture_background)
         glPushMatrix()
         glTranslatef(0.0,0.0,-5)
         self.handle_background(image)

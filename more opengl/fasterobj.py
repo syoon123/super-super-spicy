@@ -6,8 +6,7 @@
 
 import pygame, ctypes
 from OpenGL.GL import *
-from OpenGL.arrays import vbo
-from numpy import array
+from PIL import Image
 
 # Convert a list to a ctype string for pickling
 def toctype(val, btype = ctypes.c_float):
@@ -35,9 +34,13 @@ class MTL(object):
                 raise(ValueError, "mtl file doesn't start with newmtl stmt")
             elif values[0] == 'map_Kd':
                 mtl[values[0]] = values[1]
-                surf = pygame.image.load(mtl['map_Kd'])
-                mtl["image"] = pygame.image.tostring(surf, 'RGBA', 1)
-                mtl["ix"], mtl["iy"] = surf.get_rect().size
+                # surf = pygame.image.load(mtl['map_Kd'])
+                # mtl["image"] = pygame.image.tostring(surf, 'RGBA', 1)
+                # mtl["ix"], mtl["iy"] = surf.get_rect().size
+                image = Image.open("img2.png")
+                mtl['ix'] = image.size[0]
+                mtl['iy'] = image.size[1]
+                mtl['image'] = image.tobytes("raw", "RGBA", 0, -1)
             else:
                 mtl[values[0]] = tuple(map(float, values[1:]))
 
@@ -47,9 +50,10 @@ class MTL(object):
             if "map_Kd" not in mtl: continue
             texid = mtl['texture_Kd'] = glGenTextures(1)
             glBindTexture(GL_TEXTURE_2D, texid)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mtl["ix"], mtl["iy"], 0, GL_RGBA, GL_UNSIGNED_BYTE, mtl["image"])
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+            # glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, image)
+            glTexImage2D(GL_TEXTURE_2D, 0, 3, mtl["ix"], mtl["iy"], 0, GL_RGBA, GL_UNSIGNED_BYTE, mtl["image"])
 
     def bind(self, material):
         mtl = self.contents[material]
@@ -135,7 +139,7 @@ class OBJ(object):
                 else:
                     material = values[1]
             elif values[0] == 'mtllib':
-                self.mtl = MTL(values[1])  # TODO: multiple files?
+                self.mtl = MTL(values[1])
             elif values[0] == 'p':
                 raise NotImplementedError
             elif values[0] == 'l':
@@ -183,8 +187,7 @@ class OBJ(object):
 
     def generate(self):
         """Build the display list, if it's used"""
-        # self.mtl.generate()
-        print(self.vertices[0])
+        self.mtl.generate()
         if self.use_list:
             self.gl_list = glGenLists(1)
             glNewList(self.gl_list, GL_COMPILE)
@@ -209,6 +212,7 @@ class OBJ(object):
                     if dotex: glTexCoord2fv(self.texcoords[texture_coords[i] - 1])
                     glVertex3fv(self.vertices[vertices[i] - 1])
                 glEnd()
+                glDeleteTextures(1)
 
     def render(self):
         if not self.generated:
@@ -229,201 +233,4 @@ class OBJ(object):
     #     if self.generated and self.use_list and glDeleteLists:
     #         glDeleteLists(self.gl_list,1)
 
-class OBJ_array(OBJ):
-    """3-D model using vertex arrays"""
-
-    def process(self):
-        """Build index list for vertex arrays"""
-        self.indices = []
-        self.ivertices = []
-        self.inormals = []
-        self.itexcoords = []
-        imap = {}
-        for material, tfaces in self.mfaces:
-            mindices = []
-            for (nvs, dotex, donorm), (vs, vns, vts) in tfaces:
-                inds = []
-                for v, vn, vt in zip(vs, vns, vts):
-                    ivertex = tuple(self.vertices[v-1])
-                    inorm = tuple(self.normals[vn-1]) if vn else (0.,0.,0.)
-                    itcoord = tuple(self.texcoords[vt-1]) if vt else (0.,0.)
-                    key = ivertex, inorm, itcoord
-                    if key not in imap:
-                        imap[key] = len(imap)
-                        self.ivertices.extend(ivertex)
-                        self.inormals.extend(inorm)
-                        self.itexcoords.extend(itcoord)
-                    inds.append(imap[key])
-                mindices.append((nvs, dotex, donorm, inds))
-            self.indices.append((material, mindices))
-        if self.use_ctypes:
-            self.ivertices = toctype(self.ivertices)
-            self.inormals = toctype(self.inormals)
-            self.itexcoords = toctype(self.itexcoords)
-        del self.vertices, self.normals, self.texcoords
-
-    def basic_render(self):
-        glVertexPointer(3, GL_FLOAT, 0, self.ivertices)
-        glNormalPointer(GL_FLOAT, 0, self.inormals)
-        glTexCoordPointer(2, GL_FLOAT, 0, self.itexcoords)
-
-        glEnableClientState(GL_VERTEX_ARRAY)
-        texon, normon = None, None
-        for material, mindices in self.indices:
-            self.mtl.bind(material)
-            for nvs, dotex, donorm, ilist in mindices:
-                if donorm != normon:
-                    normon = donorm
-                    (glEnableClientState if donorm else glDisableClientState)(GL_NORMAL_ARRAY)
-                if dotex != texon:
-                    texon = dotex
-                    (glEnableClientState if dotex else glDisableClientState)(GL_TEXTURE_COORD_ARRAY)
-                shape = [GL_TRIANGLES, GL_QUADS, GL_POLYGON][nvs-3]
-                glDrawElements(shape, len(ilist), GL_UNSIGNED_INT, ilist)
-
-class OBJ_vbo(OBJ):
-    """3-D model using vertex buffer objects"""
-
-    def __init__(self, filename):
-        self.vbo_v = None
-        OBJ.__init__(self, filename)
-
-    def process(self):
-        """Build index list for VBOs"""
-        self.indices = []
-        vertices = []
-        normals = []
-        texcoords = []
-        for material, tfaces in self.mfaces:
-            mindices = []
-            for (nvs, dotex, donorm), (vs, vns, vts) in tfaces:
-                j = len(vertices)
-                for v, vn, vt in zip(vs, vns, vts):
-                    ivertex = tuple(self.vertices[v-1])
-                    inorm = tuple(self.normals[vn-1]) if vn else (0.,0.,0.)
-                    itcoord = tuple(self.texcoords[vt-1]) if vt else (0.,0.)
-                    vertices.append(ivertex)
-                    normals.append(inorm)
-                    texcoords.append(itcoord)
-                mindices.append((nvs, dotex, donorm, j, len(vs)))
-            self.indices.append((material, mindices))
-
-        self.vbo_v = vbo.VBO(array(vertices, "f"))
-        self.vbo_n = vbo.VBO(array(normals, "f"))
-        self.vbo_t = vbo.VBO(array(texcoords, "f"))
-        del self.vertices, self.normals, self.texcoords
-
-    def bind(self):
-        self.vbo_v.bind()
-        glVertexPointerf(self.vbo_v)
-        self.vbo_n.bind()
-        glNormalPointerf(self.vbo_n)
-        self.vbo_t.bind()
-        glTexCoordPointerf(self.vbo_t)
-
-    def basic_render(self):
-        self.bind()
-        glEnableClientState(GL_VERTEX_ARRAY)
-        texon, normon = None, None
-        for material, mindices in self.indices:
-            self.mtl.bind(material)
-            for nvs, dotex, donorm, ioffset, isize in mindices:
-                if donorm != normon:
-                    normon = donorm
-                    (glEnableClientState if donorm else glDisableClientState)(GL_NORMAL_ARRAY)
-                if dotex != texon:
-                    texon = dotex
-                    (glEnableClientState if dotex else glDisableClientState)(GL_TEXTURE_COORD_ARRAY)
-                shape = [GL_TRIANGLES, GL_QUADS, GL_POLYGON][nvs-3]
-                glDrawArrays(shape, ioffset, isize)
-
-    def __del__(self):
-        if self.vbo_v:
-            self.vbo_v.delete()
-            self.vbo_n.delete()
-            self.vbo_t.delete()
-        OBJ.__del__(self)
-
-
-if __name__ == "__main__":
-    # LMB + move: rotate
-    # RMB + move: pan
-    # Scroll wheel: zoom in/out
-    import sys
-    from pygame.locals import *
-    from pygame.constants import *
-    from OpenGL.GLU import *
-
-    pygame.init()
-    viewport = (800,600)
-    hx = viewport[0]/2
-    hy = viewport[1]/2
-    srf = pygame.display.set_mode(viewport, OPENGL | DOUBLEBUF)
-
-    glLightfv(GL_LIGHT0, GL_POSITION,  (-40, 200, 100, 0.0))
-    glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
-    glEnable(GL_LIGHT0)
-    glEnable(GL_LIGHTING)
-    glEnable(GL_COLOR_MATERIAL)
-    glEnable(GL_DEPTH_TEST)
-    glShadeModel(GL_SMOOTH)           # most obj files expect to be smooth-shaded
-
-    # LOAD OBJECT AFTER PYGAME INIT
-    obj = OBJ_vbo(sys.argv[1])
-
-    clock = pygame.time.Clock()
-
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    width, height = viewport
-    gluPerspective(90.0, width/float(height), 1, 1000.0)
-    glEnable(GL_DEPTH_TEST)
-    glMatrixMode(GL_MODELVIEW)
-
-
-    phi, theta, d = 1., 1., 30.
-    rx, ry = (0,-90)
-    tx, ty = (0,0)
-    zpos = 30
-    rotate = move = False
-    playing = True
-    jframe = tframe = 0
-    while playing:
-        dt = clock.tick() * 0.001
-        tframe += dt
-        jframe += 1
-        for e in pygame.event.get():
-            if e.type == QUIT:
-                playing = False
-            elif e.type == KEYDOWN and e.key == K_ESCAPE:
-                playing = False
-            elif e.type == MOUSEBUTTONDOWN:
-                if e.button == 4: zpos = max(1, zpos-1)
-                elif e.button == 5: zpos += 1
-                elif e.button == 1: rotate = True
-                elif e.button == 3: move = True
-            elif e.type == MOUSEBUTTONUP:
-                if e.button == 1: rotate = False
-                elif e.button == 3: move = False
-            elif e.type == MOUSEMOTION:
-                i, j = e.rel
-                if rotate:
-                    rx += i
-                    ry += j
-                if move:
-                    tx += i
-                    ty -= j
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
-
-        # RENDER OBJECT
-        glTranslate(tx/20., ty/20., - zpos)
-        glRotate(rx, 0, 1, 0)
-        glRotate(ry, 1, 0, 0)
-        obj.render()
-
-        pygame.display.flip()
-    print("%.2ffps" % (jframe / tframe))
 

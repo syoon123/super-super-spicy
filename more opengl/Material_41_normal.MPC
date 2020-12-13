@@ -1,0 +1,25 @@
+id=MagickCache
+magick-signature=4026865107
+class=DirectClass  colors=0  matte=False
+columns=2048  rows=2048 depth=8
+colorspace=sRGB
+compression=Zip  quality=0
+units=PixelsPerCentimeter
+resolution=27.56x27.56
+page=2048x2048+0+0
+rendering-intent=Perceptual
+gamma=0.454545
+red-primary=0.64,0.33  green-primary=0.3,0.6  blue-primary=0.15,0.06
+white-point=0.3127,0.329
+date:create=2020-12-13T07:27:21+00:00
+date:modify=2020-12-13T07:27:21+00:00
+png:IHDR.bit-depth-orig=8
+png:IHDR.bit_depth=8
+png:IHDR.color-type-orig=2
+png:IHDR.color_type={2 (Truecolor)}
+png:IHDR.interlace_method={0 (Not interlaced)}
+png:IHDR.width,height={2048, 2048}
+png:pHYs={x_res=2756, y_res=2756, units=1}
+png:sRGB={intent=0 (Perceptual Intent)}
+
+:
