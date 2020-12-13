@@ -148,9 +148,6 @@ class FromVideo:
         self.handle_background(image)
         glPopMatrix()
 
-        glPushMatrix()
-        glTranslatef(0.0,0.0,-2.0)
-
         rects = self.detector(gray, 0)
         if (len(rects) > 0):
             shape = self.predictor(gray, rects[0])
@@ -158,18 +155,19 @@ class FromVideo:
             x, y = (shape[36] + shape[45])/2
             shapes = np.array([shape[30], shape[8], shape[36], shape[45], shape[48], shape[54]])
             r, t, k, c = self.estimate_pose(image, shapes)
-            z = 0
+            z = t[2] * -700/(self.width * self.height)
+            glPushMatrix()
+            glTranslatef(0.0,0.0,z)
             rmtx = cv2.Rodrigues(r)[0]
             view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], t[0]/self.width],
                                     [rmtx[1][0], rmtx[1][1], rmtx[1][2], t[1]/self.height],
-                                    [rmtx[2][0], rmtx[2][1], rmtx[2][2], z],
+                                    [rmtx[2][0], rmtx[2][1], rmtx[2][2], 0],
                                     [0.0, 0.0, 0.0, 1.0]])
             view_matrix = view_matrix * INVERSE_MATRIX
             view_matrix = np.transpose(view_matrix)
             glMultMatrixf(view_matrix)
-
-        self.draw_teapot()
-        glPopMatrix()
+            self.draw_teapot()
+            glPopMatrix()
 
         glDisable(GL_BLEND)
         glEnable(GL_DEPTH_TEST)
