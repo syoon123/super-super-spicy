@@ -6,7 +6,6 @@
 
 import pygame, ctypes
 from OpenGL.GL import *
-from PIL import Image
 
 # Convert a list to a ctype string for pickling
 def toctype(val, btype = ctypes.c_float):
@@ -34,13 +33,9 @@ class MTL(object):
                 raise(ValueError, "mtl file doesn't start with newmtl stmt")
             elif values[0] == 'map_Kd':
                 mtl[values[0]] = values[1]
-                # surf = pygame.image.load(mtl['map_Kd'])
-                # mtl["image"] = pygame.image.tostring(surf, 'RGBA', 1)
-                # mtl["ix"], mtl["iy"] = surf.get_rect().size
-                image = Image.open("img2.png")
-                mtl['ix'] = image.size[0]
-                mtl['iy'] = image.size[1]
-                mtl['image'] = image.tobytes("raw", "RGBA", 0, -1)
+                surf = pygame.image.load(mtl['map_Kd'])
+                mtl["image"] = pygame.image.tostring(surf, 'RGBA', 1)
+                mtl["ix"], mtl["iy"] = surf.get_rect().size
             else:
                 mtl[values[0]] = tuple(map(float, values[1:]))
 
@@ -52,8 +47,7 @@ class MTL(object):
             glBindTexture(GL_TEXTURE_2D, texid)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            # glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, image)
-            glTexImage2D(GL_TEXTURE_2D, 0, 3, mtl["ix"], mtl["iy"], 0, GL_RGBA, GL_UNSIGNED_BYTE, mtl["image"])
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mtl["ix"], mtl["iy"], 0, GL_RGBA, GL_UNSIGNED_BYTE, mtl["image"])
 
     def bind(self, material):
         mtl = self.contents[material]
@@ -132,7 +126,7 @@ class OBJ(object):
             elif values[0] == 'vt':
                 # if len(values) != 3:
                 #     raise NotImplementedError("Only 2-d textures implemented.")
-                self.texcoords.append(list(map(float, values[1:3])))
+                self.texcoords.append(tuple(map(float, values[1:3])))
             elif values[0] in ('usemtl', 'usemat'):
                 if len(values) < 2:
                     raise NotImplementedError # use white material
@@ -203,13 +197,19 @@ class OBJ(object):
 
     def basic_render(self):
         for material, tfaces in self.mfaces:
-            # self.mtl.bind(material)
+            self.mtl.bind(material)
             for (nvs, dotex, donorm), (vertices, normals, texture_coords) in tfaces:
                 shape = [GL_TRIANGLES, GL_QUADS, GL_POLYGON][nvs-3]
                 glBegin(shape)
                 for i in range(len(vertices)):
-                    if donorm: glNormal3fv(self.normals[normals[i] - 1])
-                    if dotex: glTexCoord2fv(self.texcoords[texture_coords[i] - 1])
+                    if donorm:
+                        # print('donorm')
+                        # print(self.normals[normals[i] - 1])
+                        glNormal3fv(self.normals[normals[i] - 1])
+                    if dotex:
+                        # print('dotex')
+                        # print(self.texcoords[texture_coords[i] - 1])
+                        glTexCoord2fv(self.texcoords[texture_coords[i] - 1])
                     glVertex3fv(self.vertices[vertices[i] - 1])
                 glEnd()
                 glDeleteTextures(1)

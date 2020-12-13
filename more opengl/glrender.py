@@ -70,18 +70,7 @@ class FromVideo:
 
         glEnable(GL_TEXTURE_2D)
         self.texture_background = glGenTextures(1)
-
-        image = Image.open("img2.png")
-        ix = image.size[0]
-        iy = image.size[1]
-        image = image.tobytes("raw", "RGBA", 0, -1)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-
-        glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGB, GL_UNSIGNED_BYTE, image)
+        glDisable(GL_TEXTURE_2D)
 
     def handle_background(self, image):
         # convert image to OpenGL texture format
@@ -109,7 +98,6 @@ class FromVideo:
         glTexCoord2f(0.0, 1.0)
         glVertex3f(-self.width * 0.003, -self.height * 0.003, 0.0)
         glEnd()
-        glDeleteTextures(1)
         glDisable(GL_TEXTURE_2D)
 
     def draw_stuff(self):
