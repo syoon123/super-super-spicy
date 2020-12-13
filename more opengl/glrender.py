@@ -101,13 +101,13 @@ class FromVideo:
 
         glBegin(GL_QUADS)
         glTexCoord2f(0.0, 0.0)
-        glVertex3f(-self.width * 0.007, self.height * 0.007, 0.0)
+        glVertex3f(-self.width * 0.003, self.height * 0.003, 0.0)
         glTexCoord2f(1.0, 0.0)
-        glVertex3f(self.width * 0.007, self.height * 0.007, 0.0)
+        glVertex3f(self.width * 0.003, self.height * 0.003, 0.0)
         glTexCoord2f(1.0, 1.0)
-        glVertex3f(self.width * 0.007, -self.height * 0.007, 0.0)
+        glVertex3f(self.width * 0.003, -self.height * 0.003, 0.0)
         glTexCoord2f(0.0, 1.0)
-        glVertex3f(-self.width * 0.007, -self.height * 0.007, 0.0)
+        glVertex3f(-self.width * 0.003, -self.height * 0.003, 0.0)
         glEnd()
         glDeleteTextures(1)
 
@@ -146,7 +146,7 @@ class FromVideo:
 
         glBindTexture(GL_TEXTURE_2D, self.texture_background)
         glPushMatrix()
-        glTranslatef(0.0,0.0,-11.2)
+        glTranslatef(0.0,0.0,-5)
         self.handle_background(image)
         glPopMatrix()
 
@@ -156,14 +156,13 @@ class FromVideo:
             shape = face_utils.shape_to_np(shape)
             x, y = (shape[36] + shape[45])/2
             shapes = np.array([shape[30], shape[8], shape[36], shape[45], shape[48], shape[54]])
-            r, t, k, c = self.estimate_pose(image, shapes)
-            nose_bridge = (y - shape[30][1])/self.height
-            z = t[2] * -700/(self.width * self.height) - 2
+            r, t = self.estimate_pose(image, shapes)
+            z = t[2] * -750/(self.width * self.height)
             glPushMatrix()
-            glTranslatef(t[0]*3.5/self.width, t[1]*-3.5/self.height, z)
+            glTranslatef(0, 0, z)
             rmtx = cv2.Rodrigues(r)[0]
-            view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], 0],
-                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], 0],
+            view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], 1.75*t[0]/self.width],
+                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], 1.75*t[1]/self.height],
                                     [rmtx[2][0], rmtx[2][1], rmtx[2][2], 0],
                                     [0.0, 0.0, 0.0, 1.0]])
             view_matrix = view_matrix * INVERSE_MATRIX
@@ -171,7 +170,7 @@ class FromVideo:
             glMultMatrixf(view_matrix)
             glRotate(90, 1, 0, 0)
             glRotate(180, 0, 1, 0)
-            glScalef(-1/z, -1/z, -1/z)
+            glScalef(0.145, 0.145, 0.145)
             self.sunglasses.render()
             glPopMatrix()
 
@@ -216,7 +215,7 @@ class FromVideo:
         rotation_vector = np.squeeze(rotation_vector)
         translation_vector = np.squeeze(translation_vector)
 
-        return rotation_vector, translation_vector, camera_matrix, dist_coeffs
+        return rotation_vector, translation_vector
 
     def run(self):
         # setup and run OpenGL
