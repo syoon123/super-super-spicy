@@ -158,21 +158,20 @@ class FromVideo:
             shapes = np.array([shape[30], shape[8], shape[36], shape[45], shape[48], shape[54]])
             r, t, k, c = self.estimate_pose(image, shapes)
             nose_bridge = (y - shape[30][1])/self.height
-            z = t[2] * -700/(self.width * self.height)
+            z = t[2] * -700/(self.width * self.height) - 2
             glPushMatrix()
-            glTranslatef(0.0,0.0,z)
+            glTranslatef(t[0]*3.5/self.width, t[1]*-3.5/self.height, z)
             rmtx = cv2.Rodrigues(r)[0]
-            view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], t[0]/self.width],
-                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], t[1]/self.height + nose_bridge],
+            view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], 0],
+                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], 0],
                                     [rmtx[2][0], rmtx[2][1], rmtx[2][2], 0],
                                     [0.0, 0.0, 0.0, 1.0]])
             view_matrix = view_matrix * INVERSE_MATRIX
             view_matrix = np.transpose(view_matrix)
             glMultMatrixf(view_matrix)
-            glRotate(90, 1,0,0)
-            glRotate(180, 0,1,0)
-            glScalef(0.14, 0.14, 0.14)
-            # self.draw_teapot()
+            glRotate(90, 1, 0, 0)
+            glRotate(180, 0, 1, 0)
+            glScalef(-1/z, -1/z, -1/z)
             self.sunglasses.render()
             glPopMatrix()
 
