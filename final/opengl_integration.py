@@ -93,6 +93,8 @@ class FromVideo:
 
         # create background texture
         glEnable(GL_TEXTURE_2D)
+        glDisable(GL_LIGHTING)
+        glDisable(GL_LIGHT0)
         glBindTexture(GL_TEXTURE_2D, self.texture_background)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
@@ -142,10 +144,10 @@ class FromVideo:
                 self.trackers[i].start_track(image, dlib.rectangle(cx-20, cy-20, cx+20, cy+20))
         else:
             if self.selected:
-                print(self.count)
-                self.count +=1 
+                # print(self.count)
+                self.count +=1
                 pos_available = True
-                shapes = [] 
+                shapes = []
                 self.tracker.update(image)
                 p = self.tracker.get_position()
                 for i in range(len(indices)):
@@ -153,7 +155,7 @@ class FromVideo:
                     p = self.trackers[i].get_position()
                     # cv2.rectangle(frame, (int(p.left()), int(p.top())), (int(p.right()), int(p.bottom())), (0, 255, 0), 2)
                     shapes.append(((p.left() + p.right()) / 2., (p.top() + p.bottom()) / 2.))
-        
+
         if (pos_available):
             r, t = self.estimate_pose(image, shapes)
             z = t[2] * -750/(self.width * self.height)
@@ -170,10 +172,20 @@ class FromVideo:
             glRotate(90, 1, 0, 0)
             glRotate(180, 0, 1, 0)
             glScalef(0.145, 0.145, 0.145)
+            glEnable(GL_LIGHTING)
+            glMaterialfv(GL_FRONT, GL_SPECULAR, [1, 1, 1, 0.35])
+            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
+            glEnable(GL_LIGHT0)
+            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
+            glEnable(GL_LIGHT1)
             self.sunglasses.render()
             glPopMatrix()
+            glDisable(GL_LIGHTING)
 
-        glDisable(GL_BLEND)
         glEnable(GL_DEPTH_TEST)
 
         glutSwapBuffers()
