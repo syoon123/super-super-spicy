@@ -9,7 +9,7 @@ import numpy as np
 from imutils import face_utils
 import dlib
 
-from fasterobj import OBJ
+from fasterobj import OBJ as FOBJ
 
 # from OBJFileLoader import *
 
@@ -34,7 +34,7 @@ class FromVideo:
         self.selected = False
 
         # initialise shapes
-        self.sunglasses = OBJ(SUNGLASSES)
+        self.sunglasses = FOBJ(SUNGLASSES)
         self.texture_background = None
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
