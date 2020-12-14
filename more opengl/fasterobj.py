@@ -45,9 +45,8 @@ class MTL(object):
             if "map_Kd" not in mtl: continue
             texid = mtl['texture_Kd'] = glGenTextures(1)
             glBindTexture(GL_TEXTURE_2D, texid)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            print(mtl['ix'], mtl['iy'])
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mtl["ix"], mtl["iy"], 0, GL_RGBA, GL_UNSIGNED_BYTE, mtl["image"])
 
     def bind(self, material):
@@ -64,7 +63,7 @@ class OBJ(object):
     Base class uses fixed function."""
     swapyz = True
     reorder_materials = True  # Allow optimization by reordering materials
-    reorder_polygons = True  # Allow optimization by reordering materials
+    reorder_polygons = True  # Allow optimization by reordering polygons
     treat_polygon = False  # Set to False to treat triangles and quads specially
     use_list = True  # Use a display list
     use_ctypes = True

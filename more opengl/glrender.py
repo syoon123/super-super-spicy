@@ -45,7 +45,6 @@ class FromVideo:
 
         self.x_axis = 0.0
         self.z_axis = 0.0
-        self.texture_cube = None
 
         p = "shape_predictor_68_face_landmarks.dat"
         self.detector = dlib.get_frontal_face_detector()
@@ -83,6 +82,8 @@ class FromVideo:
 
         # create background texture
         glEnable(GL_TEXTURE_2D)
+        glDisable(GL_LIGHTING)
+        glDisable(GL_LIGHT0)
         glBindTexture(GL_TEXTURE_2D, self.texture_background)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
@@ -108,6 +109,7 @@ class FromVideo:
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
+
         glPushMatrix()
         glTranslatef(0.0,0.0,-5)
         self.handle_background(image)
@@ -125,7 +127,7 @@ class FromVideo:
             glTranslatef(0, 0, z)
             rmtx = cv2.Rodrigues(r)[0]
             view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], 1.75*t[0]/self.width],
-                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], 1.75*t[1]/self.height],
+                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], (1.75*t[1] + (y - shape[30][1]))/self.height],
                                     [rmtx[2][0], rmtx[2][1], rmtx[2][2], 0],
                                     [0.0, 0.0, 0.0, 1.0]])
             view_matrix = view_matrix * INVERSE_MATRIX
@@ -134,10 +136,21 @@ class FromVideo:
             glRotate(90, 1, 0, 0)
             glRotate(180, 0, 1, 0)
             glScalef(0.145, 0.145, 0.145)
+            glEnable(GL_LIGHTING)
+            glMaterialfv(GL_FRONT, GL_SPECULAR, [0.35, 0.35, 0.35, 1.0])
+            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
+            glEnable(GL_LIGHT0)
+            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
+            glEnable(GL_LIGHT1)
             self.sunglasses.render()
             glPopMatrix()
+            glDisable(GL_LIGHT0)
+            glDisable(GL_LIGHTING)
 
-        glDisable(GL_BLEND)
         glEnable(GL_DEPTH_TEST)
 
         glutSwapBuffers()
