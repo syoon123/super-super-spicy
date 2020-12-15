@@ -1,16 +1,10 @@
 # Import Libraries
 import dlib
-import glob
 import cv2
-import os
 import sys
 import  time
 import numpy as np
-import matplotlib.pyplot as plt
-import pyautogui as pyg
-import shutil
 from imutils import face_utils
-import math
 from OBJFileLoader import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
@@ -30,24 +24,9 @@ HEIGHT = 720
 # Sunglasses file
 SUNGLASSES = 'Sunglasses.obj'
 
-# file_name = 'Head_Detector.svm'
+# Hand Detector file
+HAND_DETECTOR = 'Head_detector.svm'
 
-# # Load our trained detector 
-# detector = dlib.simple_object_detector(file_name)
-
-# Setting the downscaling size, for faster detection
-# If you're not getting any detections then you can set this to 1
-# scale_factor = 2.0
-
-# # Initially the size of the hand and its center x point will be 0
-# size, center_x = 0,0
-
-# # Initialize these variables for calculating FPS
-# fps = 0 
-# frame_counter = 0
-# start_time = time.time()
-
-# started = False
 
 class FromVideo:
     def __init__(self):
@@ -55,9 +34,8 @@ class FromVideo:
         self.cap = cv2.VideoCapture(0)
         self.selected = False
 
-        #### HAND DETECTION
-        # Load our trained detector 
-        self.detector_hand = dlib.simple_object_detector("Head_Detector.svm")
+        # Load trained hand detector
+        self.detector_hand = dlib.simple_object_detector(HAND_DETECTOR)
         self.scale_factor = 2.0
         self.size, self.center_x = 0, 0
         self.fps = 0
@@ -131,7 +109,6 @@ class FromVideo:
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0, GL_RGBA, GL_UNSIGNED_BYTE, bg_image)
-
         glBegin(GL_QUADS)
         glTexCoord2f(0.0, 0.0)
         glVertex3f(-self.width * 0.003, self.height * 0.003, 0.0)
@@ -144,7 +121,7 @@ class FromVideo:
         glEnd()
         glDisable(GL_TEXTURE_2D)
 
-    def draw_stuff(self):
+    def render(self):
         _, image = self.cap.read()
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -177,7 +154,6 @@ class FromVideo:
                 self.trackers[i].start_track(image, dlib.rectangle(cx-20, cy-20, cx+20, cy+20))
         else:
             if self.selected:
-                # print(self.count)
                 self.count +=1
                 pos_available = True
                 shapes = []
@@ -189,51 +165,49 @@ class FromVideo:
                     # cv2.rectangle(frame, (int(p.left()), int(p.top())), (int(p.right()), int(p.bottom())), (0, 255, 0), 2)
                     shapes.append(((p.left() + p.right()) / 2., (p.top() + p.bottom()) / 2.))
 
-                # Laterally flip the frame
-        frame = cv2.flip(image, 1 )
-        
+        # Laterally flip the frame
+        frame = cv2.flip(image, 1)
+
         # Calculate the Average FPS
         self.frame_counter += 1
         self.fps = (self.frame_counter / (time.time() - self.start_time))
-        
+
         # Create a clean copy of the frame
-        copy = frame.copy()  
-        
+        copy = frame.copy()
+
         # Downsize the frame.
         new_width = int(frame.shape[1]/self.scale_factor)
         new_height = int(frame.shape[0]/self.scale_factor)
         resized_frame = cv2.resize(copy, (new_width, new_height))
-        
+
         # Detect with detector
         detections = self.detector_hand(resized_frame)
-        print(detections)
-        
+
         # Loop for each detection.
-        for detection in (detections):    
-            
+        for detection in (detections):
+
             # Since we downscaled the image we will need to resacle the coordinates according to the original image.
             x1 = int(detection.left() * self.scale_factor )
             y1 =  int(detection.top() * self.scale_factor )
             x2 =  int(detection.right() * self.scale_factor )
             y2 =  int(detection.bottom()* self.scale_factor )
-            
+
             # Draw the bounding box
             # cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0), 2 )
             # cv2.putText(frame, 'Hand Detected', (x1, y2+20), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 255),2)
 
-            if self.started == False:
+            if not self.started:
                 self.started = True
                 pos_available = True
-            # Calculate size of the hand. 
+            # Calculate size of the hand.
             self.size = int( (x2 - x1) * (y2-y1) )
-            
+
             # Extract the center of the hand on x-axis.
             self.center_x = x2 - x1 // 2
         if len(detections) == 0:
             pos_available = False
 
-
-        if (pos_available):
+        if pos_available:
             r, t = self.estimate_pose(image, shapes)
             z = t[2] * -750/(self.width * self.height)
             glPushMatrix()
@@ -250,12 +224,12 @@ class FromVideo:
             glRotate(180, 0, 1, 0)
             glScalef(0.145, 0.145, 0.145)
             glEnable(GL_LIGHTING)
-            glMaterialfv(GL_FRONT, GL_SPECULAR, [1, 1, 1, 0.35])
-            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
+            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (1, 1, 1, 0.3))
+            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, -0.3, 0.5, 0.0))
             glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
             glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
             glEnable(GL_LIGHT0)
-            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.5, 0.0))
             glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
             glEnable(GL_LIGHT1)
@@ -264,7 +238,6 @@ class FromVideo:
             glDisable(GL_LIGHTING)
 
         glEnable(GL_DEPTH_TEST)
-
         glutSwapBuffers()
 
     def estimate_pose(self, im, shapes):
@@ -312,135 +285,13 @@ class FromVideo:
         glutInitWindowSize(WIDTH, HEIGHT)
         glutInitWindowPosition(100, 100)
         glutCreateWindow("OpenGL")
-        glutDisplayFunc(self.draw_stuff)
-        glutIdleFunc(self.draw_stuff)
+        glutDisplayFunc(self.render)
+        glutIdleFunc(self.render)
         glutKeyboardFunc(self.keyboard)
 
         self.init_gl(WIDTH, HEIGHT)
         glutMainLoop()
 
-# Sunglasses file
+
 a = FromVideo()
 a.run()
-
-"""
-# If cleanup is True then the new images and annotations will be appended to previous ones
-# If False then all previous images and annotations will be deleted.
-cleanup = True
-#load obj objects
-# obj2 = OBJ(filename = 'Hat.obj')
-
-# Window dimensions
-WIDTH = 1280
-HEIGHT = 720
-
-count = 1
-
-x_axis = 0.0
-z_axis = 0.0
-texture_cube = None
-#load facial landmarks
-p = "shape_predictor_68_face_landmarks.dat"
-detector_face = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(p)
-window_name = "tracking"
-
-width = WIDTH
-height = HEIGHT
-
-
-file_name = 'Head_Detector.svm'
-
-# Load our trained detector 
-detector = dlib.simple_object_detector(file_name)
-
-# Set the window name
-cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
-
-# Initialize webcam
-cap = cv2.VideoCapture(0)
-
-selected = False
-
-# Setting the downscaling size, for faster detection
-# If you're not getting any detections then you can set this to 1
-scale_factor = 2.0
-
-# Initially the size of the hand and its center x point will be 0
-size, center_x = 0,0
-
-# Initialize these variables for calculating FPS
-fps = 0 
-frame_counter = 0
-start_time = time.time()
-
-started = False
-
-# Set the while loop
-
-while(True):
-    
-    # Read frame by frame
-    ret, frame = cap.read()
-    
-    if not ret:
-        break
-    
-    # Laterally flip the frame
-    frame = cv2.flip( frame, 1 )
-    
-    # Calculate the Average FPS
-    frame_counter += 1
-    fps = (frame_counter / (time.time() - start_time))
-    
-    # Create a clean copy of the frame
-    copy = frame.copy()  
-    
-    # Downsize the frame.
-    new_width = int(frame.shape[1]/scale_factor)
-    new_height = int(frame.shape[0]/scale_factor)
-    resized_frame = cv2.resize(copy, (new_width, new_height))
-    
-    # Detect with detector
-    detections = detector(resized_frame)
-    
-    # Loop for each detection.
-    for detection in (detections):    
-        
-        # Since we downscaled the image we will need to resacle the coordinates according to the original image.
-        x1 = int(detection.left() * scale_factor )
-        y1 =  int(detection.top() * scale_factor )
-        x2 =  int(detection.right() * scale_factor )
-        y2 =  int(detection.bottom()* scale_factor )
-        
-        # Draw the bounding box
-        # cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0), 2 )
-        # cv2.putText(frame, 'Hand Detected', (x1, y2+20), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 255),2)
-
-        if started == False:
-            started = True
-            a = FromVideo()
-            a.run()
-        # Calculate size of the hand. 
-        size = int( (x2 - x1) * (y2-y1) )
-        
-        # Extract the center of the hand on x-axis.
-        center_x = x2 - x1 // 2
-    
-    # # Display FPS and size of hand
-    # cv2.putText(frame, 'FPS: {:.2f}'.format(fps), (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 255),2)
-
-    # # This information is useful for when you'll be building hand gesture applications
-    # cv2.putText(frame, 'Center: {}'.format(center_x), (540, 20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (233, 100, 25))
-    # cv2.putText(frame, 'size: {}'.format(size), (540, 40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (233, 100, 25))
-    
-    # # Display the image
-    # cv2.imshow('frame',frame)
-    # cv2.imshow(window_name, frame)              
-    # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #     break
-
-# Relase the webcam and destroy all windows
-cap.release()
-cv2.destroyAllWindows()
-"""
