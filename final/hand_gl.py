@@ -27,7 +27,7 @@ HEIGHT = 720
 SUNGLASSES = 'Sunglasses.obj'
 
 # Hand Detection
-HAND_INTEGRATION = True
+HAND_INTEGRATION = False
 HAND_DETECTOR = 'Head_detector.svm'
 
 
@@ -133,13 +133,6 @@ class FromVideo:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray = cv2.flip(gray, 1)
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
-        glPushMatrix()
-        glTranslatef(0.0,0.0,-5)
-        self.handle_background(image)
-        glPopMatrix()
-
         rects = self.detector(gray, 0)
         pos_available = False
 
@@ -150,26 +143,47 @@ class FromVideo:
             self.tracker.start_track(image, rects[0])
             shape = self.predictor(gray, rects[0])
             shape = face_utils.shape_to_np(shape)
-            x, y = (shape[36] + shape[45])/2
+            x, y = (shape[36] + shape[45]) / 2
             shapes = np.array([shape[30], shape[8], shape[36], shape[45], shape[48], shape[54]])
 
+            p = self.tracker.get_position()
+            cv2.rectangle(image, (self.width - int(p.left()), int(p.top())),
+                          (self.width - int(p.right()), int(p.bottom())), (255, 0, 0), 2)
             for i in range(len(indices)):
                 self.selected = True
                 cx = shape[indices[i]][0]
                 cy = shape[indices[i]][1]
-                self.trackers[i].start_track(image, dlib.rectangle(cx-20, cy-20, cx+20, cy+20))
+                self.trackers[i].start_track(image, dlib.rectangle(cx - 20, cy - 20, cx + 20, cy + 20))
+            for i in range(len(indices)):
+                p = self.trackers[i].get_position()
+                cv2.rectangle(image, (self.width - int(p.left()), int(p.top())),
+                              (self.width - int(p.right()), int(p.bottom())), (255, 0, 0), 2)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glLoadIdentity()
+            glPushMatrix()
+            glTranslatef(0.0, 0.0, -5)
+            self.handle_background(image)
+            glPopMatrix()
         else:
             if self.selected:
-                self.count +=1
+                self.count += 1
                 pos_available = True
                 shapes = []
                 self.tracker.update(image)
                 p = self.tracker.get_position()
+                cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 255, 0), 2)
                 for i in range(len(indices)):
                     self.trackers[i].update(image)
                     p = self.trackers[i].get_position()
-                    # cv2.rectangle(frame, (int(p.left()), int(p.top())), (int(p.right()), int(p.bottom())), (0, 255, 0), 2)
+                    cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 255, 0), 2)
                     shapes.append(((p.left() + p.right()) / 2., (p.top() + p.bottom()) / 2.))
+
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+                glLoadIdentity()
+                glPushMatrix()
+                glTranslatef(0.0, 0.0, -5)
+                self.handle_background(image)
+                glPopMatrix()
 
         # Laterally flip the frame
         frame = cv2.flip(image, 1)
@@ -194,9 +208,9 @@ class FromVideo:
 
             # Since we downscaled the image we will need to resacle the coordinates according to the original image.
             x1 = int(detection.left() * self.scale_factor )
-            y1 =  int(detection.top() * self.scale_factor )
-            x2 =  int(detection.right() * self.scale_factor )
-            y2 =  int(detection.bottom()* self.scale_factor )
+            y1 = int(detection.top() * self.scale_factor )
+            x2 = int(detection.right() * self.scale_factor )
+            y2 = int(detection.bottom()* self.scale_factor )
 
             # Draw the bounding box
             # cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0), 2 )
@@ -213,8 +227,8 @@ class FromVideo:
         if len(detections) == 0:
             pos_available = False
 
-        if pos_available and HAND_INTEGRATION:
-            r, t = self.estimate_pose(image, shapes)
+        if pos_available or not HAND_INTEGRATION:
+            r, t, c = self.estimate_pose(image, shapes)
             if self.prev_r is None or self.prev_t is None:
                 self.prev_r = r
                 self.prev_t = t
@@ -222,9 +236,25 @@ class FromVideo:
                 if (np.dot(r, self.prev_r) / (np.linalg.norm(r) * np.linalg.norm(self.prev_r)) < .2):
                     shapes[4] = (shapes[4][0], (shapes[4][1] + shapes[0][1]) / 2.)
                     shapes[5] = (shapes[5][0], (shapes[5][1] + shapes[0][1]) / 2.)
-                    r, t = self.estimate_pose(image, shapes)
+                    r, t, c = self.estimate_pose(image, shapes)
                 self.prev_r = r
                 self.prev_t = t
+
+            # alpha = c[0][0]
+            # beta = c[1][1]
+            # x_0 = c[0][2]
+            # y_0 = c[1][2]
+            # persp = np.array([
+            #     [alpha, 0, 0, -x_0],
+            #     [0, beta, 0, -y_0],
+            #     [0, 0, NEAR + FAR, NEAR * FAR],
+            #     [0, 0, 1, 0]
+            # ])
+            # glMatrixMode(GL_PROJECTION)
+            # glPopMatrix()
+            # glLoadIdentity()
+            # glOrtho(0, self.width, self.height, 0, NEAR, FAR)
+            # glMultMatrixf(persp)
 
             glMatrixMode(GL_MODELVIEW)
             glPushMatrix()
@@ -245,11 +275,11 @@ class FromVideo:
             glTranslatef(0.0, -2.0 * z_t, 0.0)
             glEnable(GL_LIGHTING)
             glMaterialfv(GL_FRONT, GL_SPECULAR, [1, 1, 1, 0.35])
-            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT0, GL_POSITION, (0.15, 0.3, 0.8, 0.0))
             glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
             glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
             glEnable(GL_LIGHT0)
-            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.8, 0.0))
+            glLightfv(GL_LIGHT1, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
             glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
             glEnable(GL_LIGHT1)
@@ -297,7 +327,7 @@ class FromVideo:
         rotation_vector = np.squeeze(rotation_vector)
         translation_vector = np.squeeze(translation_vector)
 
-        return rotation_vector, translation_vector
+        return rotation_vector, translation_vector, camera_matrix
 
     def run(self):
         # setup and run OpenGL

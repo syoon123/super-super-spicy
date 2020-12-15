@@ -158,9 +158,9 @@ class FromVideo:
         else:
             if self.selected:
                 print(self.count)
-                self.count +=1 
+                self.count +=1
                 pos_available = True
-                shapes = [] 
+                shapes = []
                 self.tracker.update(image)
                 p = self.tracker.get_position()
                 # cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 255, 0), 2)
@@ -176,7 +176,7 @@ class FromVideo:
                 glTranslatef(0.0,0.0,-5)
                 self.handle_background(image)
                 glPopMatrix()
-        
+
         if (pos_available):
             r, t = self.estimate_pose(image, shapes)
 
@@ -187,8 +187,8 @@ class FromVideo:
                 if (np.dot(r, self.prev_r) / (np.linalg.norm(r) * np.linalg.norm(self.prev_r)) < .3):
                     print("HERE")
                     print(self.prev_r)
-                    shapes[4] = (shapes[4][0], (shapes[4][1] + (shapes[0][1] - shapes[4][1]) / 4.)
-                    shapes[5] = (shapes[5][0], (shapes[5][1] + (shapes[0][1] - shapes[5][1]) / 4.)
+                    shapes[4] = (shapes[4][0], (shapes[4][1] + shapes[0][1]) / 2.)
+                    shapes[5] = (shapes[5][0], (shapes[5][1] + shapes[0][1]) / 2.)
                     r, t = self.estimate_pose(image, shapes)
                 self.prev_r = r
                 self.prev_t = t
