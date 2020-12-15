@@ -131,6 +131,9 @@ dmypy.json
 # IDE
 .idea
 
+# macOS
+.DS_Store
+
 # Training
 train_images_h/
 *.svm
