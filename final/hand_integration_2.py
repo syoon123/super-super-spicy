@@ -248,7 +248,9 @@ class FromVideo:
             glMultMatrixf(view_matrix)
             glRotate(90, 1, 0, 0)
             glRotate(180, 0, 1, 0)
-            glScalef(0.145, 0.145, 0.145)
+            z_t = 1.3
+            glScalef(z_t * 0.145, z_t * 0.145, z_t * 0.145)
+            glTranslatef(0.0, -2.0 * z_t, 0.0)
             glEnable(GL_LIGHTING)
             glMaterialfv(GL_FRONT, GL_SPECULAR, [1, 1, 1, 0.35])
             glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
