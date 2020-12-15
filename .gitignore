@@ -133,4 +133,4 @@ dmypy.json
 
 # Training
 *.png
-.svm
+*.svm

@@ -16,6 +16,8 @@ INVERSE_MATRIX = np.array([[ 1.0, 1.0, 1.0, 1.0],
                            [-1.0,-1.0,-1.0,-1.0],
                            [-1.0,-1.0,-1.0,-1.0],
                            [ 1.0, 1.0, 1.0, 1.0]])
+NEAR = 0.1
+FAR = 100.0
 
 # Window dimensions
 WIDTH = 1280
@@ -24,7 +26,8 @@ HEIGHT = 720
 # Sunglasses file
 SUNGLASSES = 'Sunglasses.obj'
 
-# Hand Detector file
+# Hand Detection
+HAND_INTEGRATION = True
 HAND_DETECTOR = 'Head_detector.svm'
 
 
@@ -61,6 +64,9 @@ class FromVideo:
         self.width = None
         self.height = None
 
+        self.prev_r = None
+        self.prev_t = None
+
         self.count = 1
 
         self.x_axis = 0.0
@@ -85,7 +91,7 @@ class FromVideo:
         glShadeModel(GL_SMOOTH)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45.0,float(Width)/float(Height),0.1,100.0)
+        gluPerspective(45.0, float(Width)/float(Height), NEAR, FAR)
         glMatrixMode(GL_MODELVIEW)
 
         glEnable(GL_TEXTURE_2D)
@@ -207,14 +213,26 @@ class FromVideo:
         if len(detections) == 0:
             pos_available = False
 
-        if pos_available:
+        if pos_available and HAND_INTEGRATION:
             r, t = self.estimate_pose(image, shapes)
-            z = t[2] * -750/(self.width * self.height)
+            if self.prev_r is None or self.prev_t is None:
+                self.prev_r = r
+                self.prev_t = t
+            else:
+                if (np.dot(r, self.prev_r) / (np.linalg.norm(r) * np.linalg.norm(self.prev_r)) < .2):
+                    shapes[4] = (shapes[4][0], (shapes[4][1] + shapes[0][1]) / 2.)
+                    shapes[5] = (shapes[5][0], (shapes[5][1] + shapes[0][1]) / 2.)
+                    r, t = self.estimate_pose(image, shapes)
+                self.prev_r = r
+                self.prev_t = t
+
+            glMatrixMode(GL_MODELVIEW)
             glPushMatrix()
+            z = t[2] * -750 / (self.width * self.height)
             glTranslatef(0, 0, z)
             rmtx = cv2.Rodrigues(r)[0]
-            view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], 1.75*t[0]/self.width],
-                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], 1.75*t[1]/self.height],
+            view_matrix = np.array([[rmtx[0][0], rmtx[0][1], rmtx[0][2], 1.75 * t[0] / self.width],
+                                    [rmtx[1][0], rmtx[1][1], rmtx[1][2], 1.75 * t[1] / self.height],
                                     [rmtx[2][0], rmtx[2][1], rmtx[2][2], 0],
                                     [0.0, 0.0, 0.0, 1.0]])
             view_matrix = view_matrix * INVERSE_MATRIX
@@ -222,19 +240,20 @@ class FromVideo:
             glMultMatrixf(view_matrix)
             glRotate(90, 1, 0, 0)
             glRotate(180, 0, 1, 0)
-            z_t = 1.3
+            z_t = 1.1
             glScalef(z_t * 0.145, z_t * 0.145, z_t * 0.145)
             glTranslatef(0.0, -2.0 * z_t, 0.0)
             glEnable(GL_LIGHTING)
-            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (1, 1, 1, 0.3))
-            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, -0.3, 0.5, 0.0))
+            glMaterialfv(GL_FRONT, GL_SPECULAR, [1, 1, 1, 0.35])
+            glLightfv(GL_LIGHT0, GL_POSITION, (-0.15, 0.3, 0.8, 0.0))
             glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
             glLightfv(GL_LIGHT0, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
             glEnable(GL_LIGHT0)
-            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.5, 0.0))
+            glLightfv(GL_LIGHT1, GL_POSITION, (0.15, 0.3, 0.8, 0.0))
             glLightfv(GL_LIGHT1, GL_AMBIENT, (0.2, 0.2, 0.2, 1.0))
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.5, 0.5, 0.5, 1.0))
             glEnable(GL_LIGHT1)
+
             self.sunglasses.render()
             glPopMatrix()
             glDisable(GL_LIGHTING)

@@ -47,7 +47,6 @@ class MTL(object):
             glBindTexture(GL_TEXTURE_2D, texid)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            print(mtl['ix'], mtl['iy'])
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mtl["ix"], mtl["iy"], 0, GL_RGBA, GL_UNSIGNED_BYTE, mtl["image"])
 
     def bind(self, material):
@@ -204,12 +203,8 @@ class OBJ(object):
                 glBegin(shape)
                 for i in range(len(vertices)):
                     if donorm:
-                        # print('donorm')
-                        # print(self.normals[normals[i] - 1])
                         glNormal3fv(self.normals[normals[i] - 1])
                     if dotex:
-                        # print('dotex')
-                        # print(self.texcoords[texture_coords[i] - 1])
                         glTexCoord2fv(self.texcoords[texture_coords[i] - 1])
                     glVertex3fv(self.vertices[vertices[i] - 1])
                 glEnd()
