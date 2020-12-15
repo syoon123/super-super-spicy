@@ -132,5 +132,5 @@ dmypy.json
 .idea
 
 # Training
-*.png
+train_images_h/
 *.svm
