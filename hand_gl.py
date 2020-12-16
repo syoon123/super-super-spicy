@@ -221,7 +221,7 @@ class FromVideo:
         if len(detections) == 0:
             pos_available = False
 
-        if pos_available or not HAND_INTEGRATION:
+        if pos_available:
             r, t, c = self.estimate_pose(image, shapes)
             if self.prev_r is None or self.prev_t is None:
                 self.prev_r = r
@@ -297,6 +297,14 @@ class FromVideo:
             self.sunglasses.render()
             glPopMatrix()
             glDisable(GL_LIGHTING)
+
+        else:
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glLoadIdentity()
+            glPushMatrix()
+            glTranslatef(0.0, 0.0, -5)
+            self.handle_background(image)
+            glPopMatrix()
 
         glEnable(GL_DEPTH_TEST)
         glutSwapBuffers()
