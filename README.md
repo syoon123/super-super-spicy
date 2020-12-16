@@ -7,6 +7,10 @@ Nila Annadurai, Jenny Gu, Ethan Schumann and Sarah Yoon
 
 #### Installation Instructions
 Run the following commands in your terminal. Note that this project uses Python 3.
+
+*Also note: at least for me (macOS Mojave) `dlib` did not work in a virtual environment but that may have been the case only for
+my machine. —Sarah*
+
 ```
 $ pip install opencv-python
 $ pip install numpy
