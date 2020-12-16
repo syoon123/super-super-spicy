@@ -221,7 +221,7 @@ class FromVideo:
         if len(detections) == 0:
             pos_available = False
 
-        if pos_available:
+        if pos_available or not HAND_INTEGRATION:
             r, t, c = self.estimate_pose(image, shapes)
             if self.prev_r is None or self.prev_t is None:
                 self.prev_r = r
