@@ -150,8 +150,8 @@ class FromVideo:
             x, y = (shape[36] + shape[45]) / 2
             shapes = np.array([shape[30], shape[8], shape[36], shape[45], shape[48], shape[54]])
 
-            p = self.tracker.get_position()
             if FACE_RECTS:
+                p = self.tracker.get_position()
                 cv2.rectangle(image, (self.width - int(p.left()), int(p.top())),
                               (self.width - int(p.right()), int(p.bottom())), (255, 0, 0), 2)
             for i in range(len(indices)):
@@ -164,33 +164,21 @@ class FromVideo:
                 if FACE_RECTS:
                     cv2.rectangle(image, (self.width - int(p.left()), int(p.top())),
                                   (self.width - int(p.right()), int(p.bottom())), (255, 0, 0), 2)
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            glLoadIdentity()
-            glPushMatrix()
-            glTranslatef(0.0, 0.0, -5)
-            self.handle_background(image)
-            glPopMatrix()
         else:
             if self.selected:
                 self.count += 1
                 pos_available = True
                 shapes = []
                 self.tracker.update(image)
-                p = self.tracker.get_position()
-                cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 255, 0), 2)
+                if FACE_RECTS:
+                    p = self.tracker.get_position()
+                    cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 255, 0), 2)
                 for i in range(len(indices)):
                     self.trackers[i].update(image)
                     p = self.trackers[i].get_position()
                     if FACE_RECTS:
                         cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 255, 0), 2)
                     shapes.append(((p.left() + p.right()) / 2., (p.top() + p.bottom()) / 2.))
-
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-                glLoadIdentity()
-                glPushMatrix()
-                glTranslatef(0.0, 0.0, -5)
-                self.handle_background(image)
-                glPopMatrix()
 
         # Laterally flip the frame
         frame = cv2.flip(image, 1)
@@ -240,12 +228,27 @@ class FromVideo:
                 self.prev_r = r
                 self.prev_t = t
             else:
+                # see if current angle of rotation vector within range of previous rotation vector angle
                 if (np.dot(r, self.prev_r) / (np.linalg.norm(r) * np.linalg.norm(self.prev_r)) < .2):
+                    # adjust mouth positions and recalculate pose
                     shapes[4] = (shapes[4][0], (shapes[4][1] + shapes[0][1]) / 2.)
                     shapes[5] = (shapes[5][0], (shapes[5][1] + shapes[0][1]) / 2.)
                     r, t, c = self.estimate_pose(image, shapes)
+                    if FACE_RECTS:
+                        p = self.tracker.get_position()
+                        cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 0, 255), 2)
+                        for i in range(len(indices)):
+                            p = self.trackers[i].get_position()
+                            cv2.rectangle(image, (self.width - int(p.left()), int(p.top())), (self.width - int(p.right()), int(p.bottom())), (0, 0, 255), 2)
                 self.prev_r = r
                 self.prev_t = t
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glLoadIdentity()
+            glPushMatrix()
+            glTranslatef(0.0, 0.0, -5)
+            self.handle_background(image)
+            glPopMatrix()
 
             # COMMENTED OUT BECAUSE IT DOESN'T WORK :(
             # alpha = c[0][0]
