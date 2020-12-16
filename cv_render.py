@@ -19,11 +19,6 @@ p = "shape_predictor_68_face_landmarks.dat"
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(p)
 
-eye_detector = dlib.get_frontal_face_detector()
-predictor2 = dlib.shape_predictor("eye_predictor.dat")
-
-hand_detector = dlib.simple_object_detector("detector2.svm")
-
 #start video capture
 cap = cv2.VideoCapture(0)
 win = dlib.image_window()
@@ -147,23 +142,6 @@ while True:
    
         #pose estimation
         image = estimate_pose(image,shape, rect)
-
-    rects_eye = eye_detector(gray, 0)
-    for r in rects_eye:
-        (x, y, w, h) = face_utils.rect_to_bb(r)
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        shape = predictor2(gray, rect)
-        shape = face_utils.shape_to_np(shape)
-
-        for (sX, sY) in shape:
-            cv2.circle(image, (sX, sY), 1, (0, 0, 255), -1)
-
-    rects_hand = hand_detector(gray, 1)
-    print(rects_hand)
-    for (i, r) in enumerate(rects_hand):
-        (x, y, w, h) = face_utils.rect_to_bb(r)
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
     
     # win.clear_overlay()    
     # win.set_image(image)
