@@ -5,7 +5,6 @@ import sys
 import  time
 import numpy as np
 from imutils import face_utils
-from OBJFileLoader import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -27,10 +26,10 @@ HEIGHT = 720
 SUNGLASSES = 'Sunglasses.obj'
 
 # Draw face detection rectangles
-FACE_RECTS = False
+FACE_RECTS = True
 
 # Hand Detection
-HAND_INTEGRATION = False
+HAND_INTEGRATION = True
 HAND_DETECTOR = 'Head_detector.svm'
 
 
